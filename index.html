@@ -182,6 +182,9 @@ body.guia-abierta{overflow:hidden}
 .mes-detail-table th.sortable{cursor:pointer;user-select:none}
 .mes-detail-table th.sortable:hover{color:#d4af37}
 .mes-detail-table tr.grupo-row:hover{background:#212126}
+.res-detalle th.th-grupo{text-align:center;color:#d4af37;border-bottom:1px solid #3a3a40}
+.res-detalle td{vertical-align:middle}
+.res-detalle th{vertical-align:bottom}
 .mes-wrap{display:inline-flex;align-items:center;gap:10px}
 @media (max-width:640px){
  .app{padding:1rem .9rem}
@@ -205,7 +208,7 @@ body.guia-abierta{overflow:hidden}
  .form-row .field,.form-row .field.f-auto,.form-row .field.f-md,.form-row .field.f-sm{flex:1 1 calc(50% - 4px);min-width:0}
  .form-row .field.f-auto{flex-basis:100%}
  .field select,.field input:not([type=checkbox]):not([type=radio]){width:100%;min-width:0}
- .gasto-item.g-carga,.gasto-item.g-res{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px}
+ .gasto-item.g-carga{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px}
  .gasto-item > span:empty{display:none}
  .g-carga .gasto-concepto{order:1;flex:1 1 0;min-width:0}
  .g-carga .gasto-monto{order:2}
@@ -213,10 +216,11 @@ body.guia-abierta{overflow:hidden}
  .g-carga .gasto-del{order:4}
  .g-carga::after{content:"";order:5;flex-basis:100%;height:0}
  .g-carga .gasto-cat,.g-carga .gasto-origen,.g-carga .gasto-quien,.g-carga .gasto-div-badge,.g-carga .gasto-cuota{order:6}
- .g-res .gasto-concepto{flex:1 1 100%}
- .g-res .gasto-quien{flex:1 1 100%}
  .result-breakdown{grid-template-columns:1fr}
  .result-amount{font-size:28px}
+ .res-detalle .gasto-cat{display:none}
+ .res-detalle td:first-child{white-space:normal;min-width:100px}
+ .res-detalle th,.res-detalle td{padding:6px 5px}
  .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
  .tbl-scroll > .mes-detail-table{min-width:100%;width:auto}
  .mes-detail-table td,.mes-detail-table th{white-space:nowrap}
@@ -483,7 +487,7 @@ body.guia-abierta{overflow:hidden}
     </div>
     <div class="card">
       <div class="card-title">Detalle por gasto</div>
-      <div id="detalleGastos" style="display:flex;flex-direction:column;gap:4px;max-height:400px;overflow-y:auto"></div>
+      <div id="detalleGastos" style="max-height:420px;overflow-y:auto"></div>
     </div>
   </div>
 
@@ -1357,21 +1361,25 @@ function renderResultado() {
   document.getElementById('breakdownP1').innerHTML = mkBreak('P1');
   document.getElementById('breakdownP2').innerHTML  = mkBreak('P2');
 
-  var dhtml = '';
+  var dhtml = '<table class="mes-detail-table res-detalle"><thead>' +
+    '<tr><th rowspan="2">Concepto</th><th rowspan="2">Pagó</th><th class="num" rowspan="2">Importe</th>' +
+    '<th class="num th-grupo" colspan="2">Debería pagar:</th></tr>' +
+    '<tr><th class="num">' + nom('P1') + '</th><th class="num">' + nom('P2') + '</th></tr>' +
+    '</thead><tbody>';
   for (var j = 0; j < gastos.length; j++) {
     var g = gastos[j];
     var gp = gastoPct(g, pctF, pctJ);
-    var fPaga = g.monto * gp.pctP1 / 100;
-    var jPaga = g.monto * gp.pctP2 / 100;
     var divLabel = divBadgeLabel(g);
-    dhtml += '<div class="gasto-item g-res" style="grid-template-columns:1fr auto auto auto auto auto">' +
-      '<span class="gasto-concepto">' + esc(g.concepto) + ' <span class="gasto-cat" style="margin-left:4px">' + esc(g.cat) + '</span></span>' +
-      (divLabel ? '<span class="gasto-div-badge">' + divLabel + '</span>' : '<span></span>') +
-      '<span class="gasto-quien ' + (g.quien === 'P1' ? 'tag-p1' : 'tag-p2') + '">' + nom(g.quien) + ' pagó $' + fmt(g.monto) + '</span>' +
-      '<span class="text-muted">' + nom('P1') + ': $' + fmt(fPaga) + '</span>' +
-      '<span class="text-muted">' + nom('P2') + ': $' + fmt(jPaga) + '</span>' +
-      '<span></span></div>';
+    dhtml += '<tr>' +
+      '<td><span style="color:#e8e6e0;font-weight:500">' + esc(g.concepto) + '</span> <span class="gasto-cat" style="margin-left:4px">' + esc(g.cat) + '</span>' +
+        (divLabel ? ' <span class="gasto-div-badge" style="margin-left:4px">' + divLabel + '</span>' : '') + '</td>' +
+      '<td><span class="' + (g.quien === 'P1' ? 'tag-p1' : 'tag-p2') + '">' + nom(g.quien) + '</span></td>' +
+      '<td class="num" style="color:#f2e9d8;font-weight:600">$' + fmt(g.monto) + '</td>' +
+      '<td class="num text-muted">$' + fmt(g.monto * gp.pctP1 / 100) + '</td>' +
+      '<td class="num text-muted">$' + fmt(g.monto * gp.pctP2 / 100) + '</td>' +
+    '</tr>';
   }
+  dhtml += '</tbody></table>';
   document.getElementById('detalleGastos').innerHTML = dhtml;
 }
 
@@ -1646,12 +1654,10 @@ function drawHistorialTable() {
       for (var k = 0; k < gastosFiltrados.length; k++) {
         var g = gastosFiltrados[k];
         if (!grupos[g.concepto]) { grupos[g.concepto] = { concepto: g.concepto, items: [], total: 0, p1: 0, p2: 0 }; orden.push(g.concepto); }
-        var gp = gastoPct(g, pctF, pctJ);
         var gr = grupos[g.concepto];
         gr.items.push(g);
         gr.total += g.monto;
-        gr.p1 += g.monto * gp.pctP1 / 100;
-        gr.p2  += g.monto * gp.pctP2 / 100;
+        if (g.quien === 'P1') gr.p1 += g.monto; else gr.p2 += g.monto;
       }
       var listaGrupos = orden.map(function(c) { return grupos[c]; });
       var filTotal = listaGrupos.reduce(function(a, gr) { return a + gr.total; }, 0);
@@ -1681,8 +1687,8 @@ function drawHistorialTable() {
         '<th class="sortable" data-sortkey="concepto">Concepto' + sortArrow('concepto') + '</th>' +
         '<th class="num sortable" data-sortkey="cantidad">Cant.' + sortArrow('cantidad') + '</th>' +
         '<th class="num sortable" data-sortkey="total">Total' + sortArrow('total') + '</th>' +
-        '<th class="num sortable" data-sortkey="p1">' + nom('P1') + sortArrow('p1') + '</th>' +
-        '<th class="num sortable" data-sortkey="p2">' + nom('P2') + sortArrow('p2') + '</th>' +
+        '<th class="num sortable" data-sortkey="p1">Pagó ' + nom('P1') + sortArrow('p1') + '</th>' +
+        '<th class="num sortable" data-sortkey="p2">Pagó ' + nom('P2') + sortArrow('p2') + '</th>' +
       '</tr></thead><tbody>';
 
       for (var gi = 0; gi < listaGrupos.length; gi++) {
@@ -1699,11 +1705,10 @@ function drawHistorialTable() {
         if (grpOpen) {
           html += '<tr><td colspan="5" style="padding:0;border-bottom:none">' +
             '<table class="mes-detail-table" style="margin:2px 0 8px 22px;width:calc(100% - 22px)"><thead><tr>' +
-              '<th>Categoría</th><th>Origen</th><th>Pagó</th><th>División</th><th class="num">Importe</th><th class="num">' + nom('P1') + '</th><th class="num">' + nom('P2') + '</th>' +
+              '<th>Categoría</th><th>Origen</th><th>Pagó</th><th>División</th><th class="num">Importe</th>' +
             '</tr></thead><tbody>';
           for (var ii = 0; ii < grp.items.length; ii++) {
             var git = grp.items[ii];
-            var gip = gastoPct(git, pctF, pctJ);
             var divLabel2 = divBadgeLabel(git) || (pctF + '/' + pctJ + '%');
             html += '<tr>' +
               '<td>' + esc(git.cat) + (git.cuotaLabel ? ' <span class="gasto-cuota">📌 ' + esc(git.cuotaLabel) + '</span>' : '') + '</td>' +
@@ -1711,8 +1716,6 @@ function drawHistorialTable() {
               '<td class="' + (git.quien === 'P1' ? 'tag-p1' : 'tag-p2') + '">' + nom(git.quien) + '</td>' +
               '<td><span class="gasto-div-badge">' + divLabel2 + '</span></td>' +
               '<td class="num">$' + fmt(git.monto) + '</td>' +
-              '<td class="num">$' + fmt(git.monto * gip.pctP1 / 100) + '</td>' +
-              '<td class="num">$' + fmt(git.monto * gip.pctP2 / 100) + '</td>' +
             '</tr>';
           }
           html += '</tbody></table></td></tr>';
