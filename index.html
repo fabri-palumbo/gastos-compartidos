@@ -764,7 +764,9 @@ function fmtCompact(n) {
   }
   return sign + Math.round(abs);
 }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+// Nombre de persona ya escapado, para usar dentro de strings HTML
+function nomH(key) { return esc(nom(key)); }
 
 if (typeof Chart !== 'undefined') {
   if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
@@ -931,9 +933,9 @@ function toggleAdvanced(forceOpen) {
 
 function divBadgeLabel(g) {
   if (g.pctP1 == null) return '';
-  if (g.pctP1 === 100) return '100% ' + nom('P1');
-  if (g.pctP1 === 0)   return '100% ' + nom('P2');
-  return g.pctP1 + '/' + g.pctP2 + '%';
+  if (g.pctP1 === 100) return '100% ' + nomH('P1');
+  if (g.pctP1 === 0)   return '100% ' + nomH('P2');
+  return esc(g.pctP1) + '/' + esc(g.pctP2) + '%';
 }
 
 var editingGastoId = null;
@@ -1082,12 +1084,12 @@ function renderGastos() {
       '<span class="gasto-concepto">' + esc(g.concepto) + '</span>' +
       '<span class="gasto-cat">' + esc(g.cat) + '</span>' +
       '<span class="gasto-origen">' + esc(g.origen || '—') + '</span>' +
-      '<span class="gasto-quien ' + (g.quien === 'P1' ? 'tag-p1' : 'tag-p2') + '">' + nom(g.quien) + '</span>' +
+      '<span class="gasto-quien ' + (g.quien === 'P1' ? 'tag-p1' : 'tag-p2') + '">' + nomH(g.quien) + '</span>' +
       (divLabel ? '<span class="gasto-div-badge">' + divLabel + '</span>' : '<span></span>') +
-      '<span class="gasto-cuota">' + (g.cuotaLabel ? '📌 ' + g.cuotaLabel : '') + '</span>' +
+      '<span class="gasto-cuota">' + (g.cuotaLabel ? '📌 ' + esc(g.cuotaLabel) : '') + '</span>' +
       '<span class="gasto-monto">$' + fmt(g.monto) + '</span>' +
-      '<button class="gasto-edit" data-id="' + g.id + '">✎</button>' +
-      '<button class="gasto-del" data-id="' + g.id + '">×</button>' +
+      '<button class="gasto-edit" data-id="' + esc(g.id) + '">✎</button>' +
+      '<button class="gasto-del" data-id="' + esc(g.id) + '">×</button>' +
     '</div>';
   }
   list.innerHTML = html;
@@ -1364,7 +1366,7 @@ function renderResultado() {
   var dhtml = '<table class="mes-detail-table res-detalle"><thead>' +
     '<tr><th rowspan="2">Concepto</th><th rowspan="2">Pagó</th><th class="num" rowspan="2">Importe</th>' +
     '<th class="num th-grupo" colspan="2">Debería pagar:</th></tr>' +
-    '<tr><th class="num">' + nom('P1') + '</th><th class="num">' + nom('P2') + '</th></tr>' +
+    '<tr><th class="num">' + nomH('P1') + '</th><th class="num">' + nomH('P2') + '</th></tr>' +
     '</thead><tbody>';
   for (var j = 0; j < gastos.length; j++) {
     var g = gastos[j];
@@ -1373,7 +1375,7 @@ function renderResultado() {
     dhtml += '<tr>' +
       '<td><span style="color:#e8e6e0;font-weight:500">' + esc(g.concepto) + '</span> <span class="gasto-cat" style="margin-left:4px">' + esc(g.cat) + '</span>' +
         (divLabel ? ' <span class="gasto-div-badge" style="margin-left:4px">' + divLabel + '</span>' : '') + '</td>' +
-      '<td><span class="' + (g.quien === 'P1' ? 'tag-p1' : 'tag-p2') + '">' + nom(g.quien) + '</span></td>' +
+      '<td><span class="' + (g.quien === 'P1' ? 'tag-p1' : 'tag-p2') + '">' + nomH(g.quien) + '</span></td>' +
       '<td class="num" style="color:#f2e9d8;font-weight:600">$' + fmt(g.monto) + '</td>' +
       '<td class="num text-muted">$' + fmt(g.monto * gp.pctP1 / 100) + '</td>' +
       '<td class="num text-muted">$' + fmt(g.monto * gp.pctP2 / 100) + '</td>' +
@@ -1630,7 +1632,7 @@ function drawHistorialTable() {
       debJ += m.gastos[j].monto * gpTot.pctP2 / 100;
     }
     var diff = pagoF - debF;
-    var quienTxt = Math.abs(diff) < 0.5 ? 'Al día' : diff > 0 ? nom('P2') + ' debe $' + fmt(diff) : nom('P1') + ' debe $' + fmt(Math.abs(diff));
+    var quienTxt = Math.abs(diff) < 0.5 ? 'Al día' : diff > 0 ? nomH('P2') + ' debe $' + fmt(diff) : nomH('P1') + ' debe $' + fmt(Math.abs(diff));
     var isOpen = !!historialOpenState[idxReal];
 
     html += '<div class="mes-block' + (isOpen ? ' open' : '') + '" data-mesidx="' + idxReal + '">' +
@@ -1687,8 +1689,8 @@ function drawHistorialTable() {
         '<th class="sortable" data-sortkey="concepto">Concepto' + sortArrow('concepto') + '</th>' +
         '<th class="num sortable" data-sortkey="cantidad">Cant.' + sortArrow('cantidad') + '</th>' +
         '<th class="num sortable" data-sortkey="total">Total' + sortArrow('total') + '</th>' +
-        '<th class="num sortable" data-sortkey="p1">Pagó ' + nom('P1') + sortArrow('p1') + '</th>' +
-        '<th class="num sortable" data-sortkey="p2">Pagó ' + nom('P2') + sortArrow('p2') + '</th>' +
+        '<th class="num sortable" data-sortkey="p1">Pagó ' + nomH('P1') + sortArrow('p1') + '</th>' +
+        '<th class="num sortable" data-sortkey="p2">Pagó ' + nomH('P2') + sortArrow('p2') + '</th>' +
       '</tr></thead><tbody>';
 
       for (var gi = 0; gi < listaGrupos.length; gi++) {
@@ -1709,11 +1711,11 @@ function drawHistorialTable() {
             '</tr></thead><tbody>';
           for (var ii = 0; ii < grp.items.length; ii++) {
             var git = grp.items[ii];
-            var divLabel2 = divBadgeLabel(git) || (pctF + '/' + pctJ + '%');
+            var divLabel2 = divBadgeLabel(git) || (esc(pctF) + '/' + esc(pctJ) + '%');
             html += '<tr>' +
               '<td>' + esc(git.cat) + (git.cuotaLabel ? ' <span class="gasto-cuota">📌 ' + esc(git.cuotaLabel) + '</span>' : '') + '</td>' +
               '<td>' + esc(git.origen || '—') + '</td>' +
-              '<td class="' + (git.quien === 'P1' ? 'tag-p1' : 'tag-p2') + '">' + nom(git.quien) + '</td>' +
+              '<td class="' + (git.quien === 'P1' ? 'tag-p1' : 'tag-p2') + '">' + nomH(git.quien) + '</td>' +
               '<td><span class="gasto-div-badge">' + divLabel2 + '</span></td>' +
               '<td class="num">$' + fmt(git.monto) + '</td>' +
             '</tr>';
@@ -1877,7 +1879,36 @@ function confirmarNuevoMes() {
   closeModal();
 }
 
+// Normaliza los tipos de un JSON importado: cualquier cosa rara se convierte en valor inocuo
+function sanitizarEstado(d) {
+  function str(v, def) { return (typeof v === 'string') ? v : (v == null ? (def || '') : String(v)); }
+  function num(v, def) { var n = Number(v); return isFinite(n) ? n : def; }
+  function pct(v) { if (v == null) return null; var n = Number(v); return isFinite(n) ? Math.min(100, Math.max(0, n)) : null; }
+  d.categorias = (Array.isArray(d.categorias) ? d.categorias : []).map(function(c) { return str(c); });
+  d.origenes = Array.isArray(d.origenes) ? d.origenes.map(function(o) { return str(o); }) : d.origenes;
+  d.nombreP1 = str(d.nombreP1); d.nombreP2 = str(d.nombreP2);
+  d.meses = (Array.isArray(d.meses) ? d.meses : []).map(function(m, mi) {
+    m = (m && typeof m === 'object') ? m : {};
+    m.nombre = str(m.nombre, 'Mes ' + (mi + 1));
+    m.pctP1 = pct(m.pctP1); m.pctP2 = pct(m.pctP2);
+    m.gastos = (Array.isArray(m.gastos) ? m.gastos : []).map(function(g, gi) {
+      g = (g && typeof g === 'object') ? g : {};
+      g.id = num(g.id, Date.now() + gi);
+      g.concepto = str(g.concepto); g.cat = str(g.cat); g.origen = str(g.origen);
+      g.quien = g.quien === 'P2' ? 'P2' : 'P1';
+      g.monto = num(g.monto, 0);
+      g.cuotaLabel = /^\d{1,3}\/\d{1,3}$/.test(str(g.cuotaLabel)) ? str(g.cuotaLabel) : '';
+      var a = pct(g.pctP1), b = pct(g.pctP2);
+      if (a == null || b == null) { delete g.pctP1; delete g.pctP2; } else { g.pctP1 = a; g.pctP2 = b; }
+      return g;
+    });
+    return m;
+  });
+  return d;
+}
+
 function aplicarEstado(data) {
+  data = sanitizarEstado(data);
   state = data;
   mesesSeleccionados = null;
   if (!state.origenes) state.origenes = ['Efectivo','Débito','Crédito','Billetera virtual'];
